@@ -1,0 +1,15 @@
+{
+  "name": "onewave-toolkit",
+  "description": "The OneWave AI Toolkit for Claude Code",
+  "owner": {
+    "name": "OneWave AI",
+    "url": "https://www.onewave-ai.com"
+  },
+  "plugins": [
+    {
+      "name": "onewave-toolkit",
+      "source": "./",
+      "description": "A coding, marketing and sales team in one plugin: 12 specialist agents, 15 skills, 4 team commands and a secret guard hook that stops Claude from leaking API keys."
+    }
+  ]
+}

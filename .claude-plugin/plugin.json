@@ -1,0 +1,30 @@
+{
+  "name": "onewave-toolkit",
+  "displayName": "OneWave AI Toolkit",
+  "version": "1.0.0",
+  "description": "A coding, marketing and sales team in one plugin: 12 specialist agents, 15 skills, 4 team commands and a secret guard hook that stops Claude from leaking API keys.",
+  "author": {
+    "name": "OneWave AI",
+    "url": "https://www.onewave-ai.com"
+  },
+  "homepage": "https://github.com/OneWave-AI/onewave-toolkit",
+  "repository": "https://github.com/OneWave-AI/onewave-toolkit",
+  "license": "MIT",
+  "keywords": [
+    "agents",
+    "coding",
+    "marketing",
+    "sales",
+    "code-review",
+    "seo",
+    "copywriting",
+    "prospecting",
+    "secret-scanning",
+    "productivity"
+  ],
+  "icon": "./.claude-plugin/icon.png",
+  "documentationUrl": "https://github.com/OneWave-AI/onewave-toolkit/blob/main/README.md",
+  "supportUrl": "https://www.onewave-ai.com/contact",
+  "privacyPolicyUrl": "https://www.onewave-ai.com/privacy",
+  "termsOfServiceUrl": "https://www.onewave-ai.com/terms"
+}
