@@ -2076,25 +2076,37 @@ const sportscaster_speak = async ($: EngineInterface, line: string) => {
     // The voice is not installed here: fall back to the system default once.
     if (!sportscaster_voice) return
     sportscaster_voice = undefined
-    await $.audio.speak(line).catch(() => undefined)
+    try {
+      await $.audio.speak(line)
+    } catch {
+      // no voice at all: stay silent
+    }
   }
 }
 
-const sportscaster_crowd = ($: EngineInterface, fx: sportscaster_Fx) => {
-  if (fx) void $.audio.play({ base64: sportscaster_fxClip(fx), mime: 'audio/wav' }, { gain: fx === 'cheer' ? 0.7 : 0.6 }).catch(() => undefined)
+const sportscaster_crowd = async ($: EngineInterface, fx: sportscaster_Fx) => {
+  if (!fx) return
+  try {
+    await $.audio.play({ base64: sportscaster_fxClip(fx), mime: 'audio/wav' }, { gain: fx === 'cheer' ? 0.7 : 0.6 })
+  } catch {
+    // no audio device: the play-by-play still shows
+  }
 }
 
 const sportscaster_call = async ($: EngineInterface, play: sportscaster_Play) => {
-  const reply = await $.model
-    .complete({
+  let line = ''
+  try {
+    const reply = await $.model.complete({
       model: 'haiku',
       system: sportscaster_ANNOUNCER,
       prompt: sportscaster_announcerPrompt(play, sportscaster_recent.slice(-4)),
       maxTokens: 60,
       effort: 'low',
     })
-    .catch(() => null)
-  const line = reply?.isAnswered ? sportscaster_speakable(reply.text) : ''
+    if (reply.isAnswered) line = sportscaster_speakable(reply.text)
+  } catch {
+    // the model is unavailable: fall back to the scripted line
+  }
   return line || play.fallback
 }
 
@@ -2109,7 +2121,7 @@ const sportscaster_onAir = async ($: EngineInterface) => {
     sportscaster_recent.push(line)
     if (sportscaster_recent.length > 8) sportscaster_recent.shift()
     await sportscaster_post($, line, play.at, play.fx)
-    sportscaster_crowd($, play.fx)
+    void sportscaster_crowd($, play.fx)
     await sportscaster_say($, line)
   } finally {
     sportscaster_isOnAir = false
@@ -2125,7 +2137,7 @@ const sportscaster_runDemo = async ($: EngineInterface) => {
     $.clock.after(wait, () => {
       void (async () => {
         await sportscaster_post($, line, wait, fx)
-        sportscaster_crowd($, fx)
+        void sportscaster_crowd($, fx)
         await sportscaster_say($, line)
         if (i === sportscaster_DEMO.length - 1) sportscaster_isDemo = false
       })()
@@ -2794,7 +2806,7 @@ export const register: Register = (on, options) => {
     const s1 = (x: unknown): unknown => (bossFightOn ? bossFight_hook_2($, x as never, ((y?: unknown) => s2(y ?? x)) as never) : s2(x))
     const s0 = (x: unknown): unknown => (launchCodesOn ? launchCodes_hook_1($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
     return s0(e) as never
-  }).catch(launchCodes_hook_1_catch as never)
+  }).catch(launchCodes_hook_1_catch)
   on('command.run', { command: 'launch-codes' }, ($, e, next) => (launchCodesOn ? launchCodes_hook_2($, e, next) : next(e)))
   on('ui.render', { component: 'Pane', requestId: launchCodes_PANE }, ($, e, next) => (launchCodesOn ? launchCodes_hook_3($, e, next) : next(e)))
   on('tool.call', async ($, e, next) => {
