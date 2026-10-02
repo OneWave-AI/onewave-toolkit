@@ -1,6 +1,6 @@
 # OneWave AI Toolkit
 
-A coding, marketing and sales team in one Claude plugin: **12 specialist agents, 15 skills, 4 team commands, 10 Claude Code mods and a secret guard** that stops Claude from leaking your API keys.
+A coding, marketing and sales team in one Claude plugin: **12 specialist agents, 16 skills, 4 team commands, 10 Claude Code mods and a secret guard** that stops Claude from leaking your API keys.
 
 Install it once and you can plan and review code, write and test it, build a launch kit, research a prospect and draft the outreach, all from the same session.
 
@@ -34,7 +34,7 @@ Then try `/onewave-toolkit:team plan and build a pricing page`, or just describe
 
 Agents that research use web search. Agents that work on code use your normal Claude Code permissions, so you still approve anything your settings ask you to approve.
 
-## 15 skills
+## 16 skills
 
 **Coding**
 - `agent-army`: run a 2-layer army of parallel agents on big refactors, migrations, audits and bulk generation
@@ -44,6 +44,9 @@ Agents that research use web search. Agents that work on code use your normal Cl
 - `plan-in-files`: keeps a multi-step plan in files so long work survives a context reset
 - `session-handoff`: writes a clean handoff when a session ends or work passes to someone else
 - `before-you-build`: finds the biggest risk in a build before you start and the smallest way to test it
+
+**Strategy**
+- `expert-debate-panel`: a moderated debate between 4 or 5 expert roles with conflicting views, ending in a decision frame instead of a verdict. Delivered in chat, as a document or as an interactive HTML page
 
 **Marketing**
 - `landing-page-copywriter`: full landing page copy using proven frameworks such as PAS, AIDA and StoryBrand
@@ -97,19 +100,32 @@ Mods add live panes, a band above the prompt, status lines and guards to Claude 
 
 No mod makes its own network requests. Model calls go only to the Claude model your session already uses.
 
+### What the mods do under the hood
+
+Everything below is also visible in the source under `mods/` and `hooks/register.tsx`.
+
+- **Programs they run.** Only Session Wrapped runs programs: `python3 mods/session-wrapped/scripts/usage.py` to total your week and month from local Claude Code transcripts, and `base64 -D -o <card>.png` (or, where base64 has no `-o`, `python3 mods/session-wrapped/scripts/write_b64.py <card>.png`) to save the recap card. No mod runs a shell.
+- **Files they write.** Session Wrapped writes `~/Desktop/claude-wrapped-<time>.png` and a cache at `~/.cache/session-wrapped/`. Agent Race writes one small JSON file per session under `~/.claude/agent-race/<race>/`. No mod writes build, settings or instruction files.
+- **Tools they call.** Only Inbox Alerts calls tools itself, and only while its switch is on: the read-only claude.ai connector tools Gmail `search_threads`, Slack `slack_search_public_and_private` and Google Calendar `list_events`, every two minutes. What they return is shown in its pane and toasts and is not sent anywhere.
+- **Prompts they submit.** Only `/alerts triage` submits a prompt: your unread alert snippets and upcoming meeting titles, fenced as untrusted text, asking Claude to rank them and draft replies without sending anything.
+- **Prompts they read.** Burn Meter, Code Pet, Agent Narrator, Inner Monologue, Sportscaster and Session Wrapped hook `prompt.submit` to note that a turn started (Burn Meter records the cost so far; the others count turns or note the request). None of them changes your prompt, and only Inner Monologue sends any of it to the model, as described above.
+- **Tool calls they watch.** Several mods watch tool calls to react to them (the pet eats, the boss takes damage, the narrator explains the step). No mod changes a tool's input. Launch Codes can stop a Bash command until you confirm it, and if its own check ever fails it blocks the command rather than letting it through.
+- **Download-and-run patterns.** Launch Codes and Agent Narrator contain the text of commands like `curl … | sh` so they can recognize and describe them. They never run them.
+
+
 - **Launch Codes is a speed bump, not a security boundary.** It checks Bash commands only. Keep your normal permissions and sandboxing on.
 - **Inbox Alerts handles text other people wrote.** `/alerts triage` wraps every email and Slack snippet in an untrusted block and tells Claude never to send, reply or delete anything. That lowers prompt-injection risk; it does not remove it. Set your email and Slack member ID in `/config` so your own messages do not alert you.
 - The mods are also published one by one, with source and tests, at [OneWave-AI/claude-code-mods](https://github.com/OneWave-AI/claude-code-mods).
 
 ## Secret guard (hook)
 
-The toolkit includes one hook that runs before Claude uses Bash, Write or Edit. It blocks three things:
+The toolkit includes one settings hook that runs before Claude uses Bash, Write or Edit. It blocks three things:
 
-1. **A real API key or private key** in a command or in a file Claude is about to write: Anthropic, OpenAI, Stripe, GitHub, GitLab, Slack, AWS and Google key formats, plus PEM private keys.
-2. **Printing a secret variable**, such as `echo $OPENAI_API_KEY` or `printenv GITHUB_TOKEN`, which would put the value in your transcript. Piping it into a program (`echo "$T" | docker login --password-stdin`) and presence checks (`[ -n "$TOKEN" ]`) are allowed.
+1. **A real API key or private key** in a command or in a file Claude is about to write. It recognizes the key formats of Anthropic, OpenAI, Stripe, GitHub, GitLab, Slack, AWS and Google, plus PEM private keys.
+2. **Printing a secret variable** with `echo`, `printf` or `printenv`, when the variable's name contains KEY, TOKEN, SECRET, PASSWORD or CREDENTIALS. That would put the value in your transcript. Piping the variable into a program and checking whether it is set (`[ -n "$NAME" ]`) are allowed.
 3. **Dumping the whole environment** with a bare `env` or `printenv`.
 
-When it blocks something, Claude sees the reason and takes a safer route. The hook is [one readable shell script](scripts/secret-guard.sh) with no dependencies. It reads only the tool call it is checking, writes nothing, and makes no network requests. Its test suite runs with `sh tests/secret-guard.test.sh`.
+When it blocks something, Claude sees the reason and takes a safer route. The hook is [one readable shell script](scripts/secret-guard.sh) with no dependencies. It reads only the tool call it is checking, writes nothing, never reads your environment or files, and makes no network requests. Its test suite runs with `sh tests/secret-guard.test.sh`.
 
 ## Privacy and data
 

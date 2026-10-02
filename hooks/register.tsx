@@ -681,15 +681,15 @@ const sessionWrapped_bigCells = (value: string, color: number) => {
   const columns = Math.max(1, chars.length * (sessionWrapped_GLYPH_W + 1) - 1)
   const rows = Math.ceil(sessionWrapped_GLYPH_H / 2)
   const words = new Uint32Array(columns * rows * 3)
-  const on = (x: number, y: number) => {
+  const onAt_1886 = (x: number, y: number) => {
     const n = Math.floor(x / (sessionWrapped_GLYPH_W + 1))
     const gx = x % (sessionWrapped_GLYPH_W + 1)
     return gx < sessionWrapped_GLYPH_W && y < sessionWrapped_GLYPH_H && sessionWrapped_lit(chars[n] ?? ' ', gx, y)
   }
   for (let r = 0; r < rows; r++) {
     for (let x = 0; x < columns; x++) {
-      const top = on(x, r * 2)
-      const bottom = on(x, r * 2 + 1)
+      const top = onAt_1886(x, r * 2)
+      const bottom = onAt_1886(x, r * 2 + 1)
       const i = (r * columns + x) * 3
       words[i] = top && bottom ? 0x2588 : top ? 0x2580 : bottom ? 0x2584 : 0x20
       words[i + 1] = top || bottom ? color : 0x01000000
@@ -711,14 +711,14 @@ const sessionWrapped_stamp = (now: number) => {
   return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}-${two(d.getHours())}${two(d.getMinutes())}`
 }
 
-/** Writes the PNG with the system's base64 decoder: `$.fs.write` takes text alone. */
+/** Writes the PNG with the system's base64 decoder (`$.fs.write` takes text alone), or a bundled Python helper where base64 has no -o. */
 const sessionWrapped_savePng = async ($: EngineInterface, s: sessionWrapped_Stats, usage: sessionWrapped_Usage | null, now: number, isDemo: boolean) => {
   const home = (await $.env.get('HOME')) ?? '/tmp'
   const path = `${home}/Desktop/claude-wrapped-${sessionWrapped_stamp(now)}${isDemo ? '-demo' : ''}.png`
   const png = sessionWrapped_toBase64(sessionWrapped_renderCard(sessionWrapped_allCards(s, usage, now), sessionWrapped_dateLabel(now), isDemo))
   const ran = await $.process.run(['base64', '-D', '-o', path], { stdin: png, timeoutMs: 20_000 })
   if (ran.exitCode !== 0) {
-    const fallback = await $.process.run(['sh', '-c', 'base64 -d > "$1"', 'sh', path], { stdin: png, timeoutMs: 20_000 })
+    const fallback = await $.process.run(['python3', `${$.plugin.root}/mods/session-wrapped/scripts/write_b64.py`, path], { stdin: png, timeoutMs: 20_000 })
     if (fallback.exitCode !== 0) throw new Error(ran.stderr || fallback.stderr || 'base64 failed')
   }
   return path
@@ -933,25 +933,25 @@ const bossFight_statusFor = (f: bossFight_Fight) =>
 const bossFight_play = async ($: EngineInterface, run: bossFight_RunResult, isDemo: boolean) => {
   const now = await $.clock.now()
   const move = bossFight_step(bossFight_fight, run, now, Math.floor(now / 7) + run.failed * 31)
-  const next = { ...move.fight, isDemo: move.event === 'spawn' ? isDemo : move.fight.isDemo }
-  await bossFight_setFight($, next)
-  $.ui.status(bossFight_statusFor(next))
+  const nextValue_1782 = { ...move.fight, isDemo: move.event === 'spawn' ? isDemo : move.fight.isDemo }
+  await bossFight_setFight($, nextValue_1782)
+  $.ui.status(bossFight_statusFor(nextValue_1782))
 
   if (move.event === 'spawn') {
-    $.ui.toast(`A boss appears: ${next.boss} (${next.hp} HP). /boss to fight.`, { timeoutMs: 6000 })
+    $.ui.toast(`A boss appears: ${nextValue_1782.boss} (${nextValue_1782.hp} HP). /boss to fight.`, { timeoutMs: 6000 })
     const panes = await $.ui.panes()
     if (!panes.some(p => p.id === bossFight_PANE)) void $.ui.open({ id: bossFight_PANE, title: 'Boss Fight' })
   }
-  if (move.event === 'hit') $.ui.toast(`Hit! ${move.fight.delta} damage. ${next.boss} has ${next.hp} HP left.`)
-  if (move.event === 'heal') $.ui.toast(`${next.boss} healed ${-move.fight.delta} HP. New failures.`)
+  if (move.event === 'hit') $.ui.toast(`Hit! ${move.fight.delta} damage. ${nextValue_1782.boss} has ${nextValue_1782.hp} HP left.`)
+  if (move.event === 'heal') $.ui.toast(`${nextValue_1782.boss} healed ${-move.fight.delta} HP. New failures.`)
   if (move.event === 'ko') {
     let kills = await read($, bossFight_killsAtom)
-    if (!next.isDemo) {
+    if (!nextValue_1782.isDemo) {
       kills = Number((await $.store.get('boss:' + 'kills')) ?? 0) + 1
       await $.store.set('boss:' + 'kills', kills)
       await update($, bossFight_killsAtom, () => kills)
     }
-    $.ui.toast(`${next.boss} defeated in ${next.runs} runs. Loot: ${next.loot}`, { timeoutMs: 8000 })
+    $.ui.toast(`${nextValue_1782.boss} defeated in ${nextValue_1782.runs} runs. Loot: ${nextValue_1782.loot}`, { timeoutMs: 8000 })
   }
 }
 
@@ -1472,16 +1472,16 @@ const agentNarrator_demo = async ($: EngineInterface) => {
       await agentNarrator_settle($, pending, was.isError === true, was.stdout ?? '')
       pending = null
     }
-    const next = agentNarrator_DEMO[i]
-    if (!next) {
+    const nextValue_4317 = agentNarrator_DEMO[i]
+    if (!nextValue_4317) {
       await agentNarrator_endRun($)
       await update($, agentNarrator_isDemo, () => false)
       $.ui.toast('Done. Changes tested and saved, ready for your review.', { timeoutMs: 8000 })
       return
     }
     i += 1
-    pending = await agentNarrator_begin($, `demo-${i}`, next.tool, next.input)
-    agentNarrator_demoTimer = $.clock.after(next.ms, () => void advance().catch(() => undefined))
+    pending = await agentNarrator_begin($, `demo-${i}`, nextValue_4317.tool, nextValue_4317.input)
+    agentNarrator_demoTimer = $.clock.after(nextValue_4317.ms, () => void advance().catch(() => undefined))
   }
   await advance()
 }
@@ -1701,10 +1701,10 @@ const agentRace_demo = async ($: EngineInterface) => {
     void (async () => {
       const at = await $.clock.now()
       const v = await read($, agentRace_view)
-      const next = v.lanes.map((lane, i) => agentRace_demoTick(lane, i, at, Math.random()))
-      await update($, agentRace_view, x => ({ ...x, lanes: next }))
-      await agentRace_crown($, next)
-      if (next.every(l => l.finishedAt !== null)) agentRace_stop()
+      const nextValue_3725 = v.lanes.map((lane, i) => agentRace_demoTick(lane, i, at, Math.random()))
+      await update($, agentRace_view, x => ({ ...x, lanes: nextValue_3725 }))
+      await agentRace_crown($, nextValue_3725)
+      if (nextValue_3725.every(l => l.finishedAt !== null)) agentRace_stop()
     })().catch(() => undefined)
   })
 }
@@ -2389,8 +2389,8 @@ const inboxAlerts_statusLine = (list: inboxAlerts_Alert[], error: string | null,
   const mail = list.filter(a => a.source === 'gmail').length
   const slack = list.length - mail
   const parts: string[] = [mail ? `${mail} mail` : '', slack ? `${slack} slack` : ''].filter(Boolean)
-  const next = inboxAlerts_nextMeeting(cal, now)
-  if (next) parts.push(`${inboxAlerts_until(next.start, now) === 'now' ? 'in' : 'next'}: ${next.title.slice(0, 28)} ${inboxAlerts_until(next.start, now)}`)
+  const nextValue_4560 = inboxAlerts_nextMeeting(cal, now)
+  if (nextValue_4560) parts.push(`${inboxAlerts_until(nextValue_4560.start, now) === 'now' ? 'in' : 'next'}: ${nextValue_4560.title.slice(0, 28)} ${inboxAlerts_until(nextValue_4560.start, now)}`)
   if (error) parts.push(`${error} offline`)
   return parts.length ? `Inbox: ${parts.join(' · ')}` : undefined
 }
@@ -2781,38 +2781,22 @@ export const register: Register = (on, options) => {
     const s0 = (x: unknown): unknown => (burnMeterOn ? burnMeter_hook_2($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
     return s0(e) as never
   })
-  on('command.run', { command: 'burn' }, async ($, e, next) => {
-    const s1 = (x: unknown) => next(x as never)
-    const s0 = (x: unknown): unknown => (burnMeterOn ? burnMeter_hook_3($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
-    return s0(e) as never
-  })
+  on('command.run', { command: 'burn' }, ($, e, next) => (burnMeterOn ? burnMeter_hook_3($, e, next) : next(e)))
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const s2 = (x: unknown) => next(x as never)
     const s1 = (x: unknown): unknown => (sportscasterOn ? sportscaster_hook_5($, x as never, ((y?: unknown) => s2(y ?? x)) as never) : s2(x))
     const s0 = (x: unknown): unknown => (burnMeterOn ? burnMeter_hook_4($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
     return s0(e) as never
   })
-  on('ui.render', { component: 'Pane', requestId: burnMeter_PANE }, async ($, e, next) => {
-    const s1 = (x: unknown) => next(x as never)
-    const s0 = (x: unknown): unknown => (burnMeterOn ? burnMeter_hook_5($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
-    return s0(e) as never
-  })
+  on('ui.render', { component: 'Pane', requestId: burnMeter_PANE }, ($, e, next) => (burnMeterOn ? burnMeter_hook_5($, e, next) : next(e)))
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     const s2 = (x: unknown) => next(x as never)
     const s1 = (x: unknown): unknown => (bossFightOn ? bossFight_hook_2($, x as never, ((y?: unknown) => s2(y ?? x)) as never) : s2(x))
     const s0 = (x: unknown): unknown => (launchCodesOn ? launchCodes_hook_1($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
     return s0(e) as never
   }).catch(launchCodes_hook_1_catch as never)
-  on('command.run', { command: 'launch-codes' }, async ($, e, next) => {
-    const s1 = (x: unknown) => next(x as never)
-    const s0 = (x: unknown): unknown => (launchCodesOn ? launchCodes_hook_2($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
-    return s0(e) as never
-  })
-  on('ui.render', { component: 'Pane', requestId: launchCodes_PANE }, async ($, e, next) => {
-    const s1 = (x: unknown) => next(x as never)
-    const s0 = (x: unknown): unknown => (launchCodesOn ? launchCodes_hook_3($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
-    return s0(e) as never
-  })
+  on('command.run', { command: 'launch-codes' }, ($, e, next) => (launchCodesOn ? launchCodes_hook_2($, e, next) : next(e)))
+  on('ui.render', { component: 'Pane', requestId: launchCodes_PANE }, ($, e, next) => (launchCodesOn ? launchCodes_hook_3($, e, next) : next(e)))
   on('tool.call', async ($, e, next) => {
     const s6 = (x: unknown) => next(x as never)
     const s5 = (x: unknown): unknown => (sportscasterOn ? sportscaster_hook_3($, x as never, ((y?: unknown) => s6(y ?? x)) as never) : s6(x))
@@ -2823,89 +2807,21 @@ export const register: Register = (on, options) => {
     const s0 = (x: unknown): unknown => (sessionWrappedOn ? sessionWrapped_hook_2($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
     return s0(e) as never
   })
-  on('session.end', async ($, e, next) => {
-    const s1 = (x: unknown) => next(x as never)
-    const s0 = (x: unknown): unknown => (sessionWrappedOn ? sessionWrapped_hook_4($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
-    return s0(e) as never
-  })
-  on('command.run', { command: 'wrapped' }, async ($, e, next) => {
-    const s1 = (x: unknown) => next(x as never)
-    const s0 = (x: unknown): unknown => (sessionWrappedOn ? sessionWrapped_hook_5($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
-    return s0(e) as never
-  })
-  on('ui.render', { component: 'Pane', requestId: sessionWrapped_PANE }, async ($, e, next) => {
-    const s1 = (x: unknown) => next(x as never)
-    const s0 = (x: unknown): unknown => (sessionWrappedOn ? sessionWrapped_hook_6($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
-    return s0(e) as never
-  })
-  on('command.run', { command: 'boss' }, async ($, e, next) => {
-    const s1 = (x: unknown) => next(x as never)
-    const s0 = (x: unknown): unknown => (bossFightOn ? bossFight_hook_1($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
-    return s0(e) as never
-  })
-  on('ui.render', { component: 'Pane', requestId: bossFight_PANE }, async ($, e, next) => {
-    const s1 = (x: unknown) => next(x as never)
-    const s0 = (x: unknown): unknown => (bossFightOn ? bossFight_hook_3($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
-    return s0(e) as never
-  })
-  on('command.run', { command: 'pet' }, async ($, e, next) => {
-    const s1 = (x: unknown) => next(x as never)
-    const s0 = (x: unknown): unknown => (codePetOn ? codePet_hook_1($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
-    return s0(e) as never
-  })
-  on('ui.render', { component: 'Pane', requestId: codePet_PANE }, async ($, e, next) => {
-    const s1 = (x: unknown) => next(x as never)
-    const s0 = (x: unknown): unknown => (codePetOn ? codePet_hook_5($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
-    return s0(e) as never
-  })
-  on('command.run', { command: 'narrate' }, async ($, e, next) => {
-    const s1 = (x: unknown) => next(x as never)
-    const s0 = (x: unknown): unknown => (agentNarratorOn ? agentNarrator_hook_1($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
-    return s0(e) as never
-  })
-  on('ui.render', { component: 'Pane', requestId: agentNarrator_PANE }, async ($, e, next) => {
-    const s1 = (x: unknown) => next(x as never)
-    const s0 = (x: unknown): unknown => (agentNarratorOn ? agentNarrator_hook_5($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
-    return s0(e) as never
-  })
-  on('command.run', { command: 'race' }, async ($, e, next) => {
-    const s1 = (x: unknown) => next(x as never)
-    const s0 = (x: unknown): unknown => (agentRaceOn ? agentRace_hook_1($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
-    return s0(e) as never
-  })
-  on('ui.render', { component: 'Pane', requestId: agentRace_PANE }, async ($, e, next) => {
-    const s1 = (x: unknown) => next(x as never)
-    const s0 = (x: unknown): unknown => (agentRaceOn ? agentRace_hook_4($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
-    return s0(e) as never
-  })
-  on('command.run', { command: 'monologue' }, async ($, e, next) => {
-    const s1 = (x: unknown) => next(x as never)
-    const s0 = (x: unknown): unknown => (innerMonologueOn ? innerMonologue_hook_1($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
-    return s0(e) as never
-  })
-  on('ui.render', { component: 'Pane', requestId: innerMonologue_PANE }, async ($, e, next) => {
-    const s1 = (x: unknown) => next(x as never)
-    const s0 = (x: unknown): unknown => (innerMonologueOn ? innerMonologue_hook_4($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
-    return s0(e) as never
-  })
-  on('command.run', { command: 'caster' }, async ($, e, next) => {
-    const s1 = (x: unknown) => next(x as never)
-    const s0 = (x: unknown): unknown => (sportscasterOn ? sportscaster_hook_1($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
-    return s0(e) as never
-  })
-  on('ui.render', { component: 'Pane', requestId: sportscaster_PANE }, async ($, e, next) => {
-    const s1 = (x: unknown) => next(x as never)
-    const s0 = (x: unknown): unknown => (sportscasterOn ? sportscaster_hook_6($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
-    return s0(e) as never
-  })
-  on('command.run', { command: 'alerts' }, async ($, e, next) => {
-    const s1 = (x: unknown) => next(x as never)
-    const s0 = (x: unknown): unknown => (inboxAlertsOn ? inboxAlerts_hook_1($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
-    return s0(e) as never
-  })
-  on('ui.render', { component: 'Pane', requestId: inboxAlerts_PANE }, async ($, e, next) => {
-    const s1 = (x: unknown) => next(x as never)
-    const s0 = (x: unknown): unknown => (inboxAlertsOn ? inboxAlerts_hook_2($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
-    return s0(e) as never
-  })
+  on('session.end', ($, e, next) => (sessionWrappedOn ? sessionWrapped_hook_4($, e, next) : next(e)))
+  on('command.run', { command: 'wrapped' }, ($, e, next) => (sessionWrappedOn ? sessionWrapped_hook_5($, e, next) : next(e)))
+  on('ui.render', { component: 'Pane', requestId: sessionWrapped_PANE }, ($, e, next) => (sessionWrappedOn ? sessionWrapped_hook_6($, e, next) : next(e)))
+  on('command.run', { command: 'boss' }, ($, e, next) => (bossFightOn ? bossFight_hook_1($, e, next) : next(e)))
+  on('ui.render', { component: 'Pane', requestId: bossFight_PANE }, ($, e, next) => (bossFightOn ? bossFight_hook_3($, e, next) : next(e)))
+  on('command.run', { command: 'pet' }, ($, e, next) => (codePetOn ? codePet_hook_1($, e, next) : next(e)))
+  on('ui.render', { component: 'Pane', requestId: codePet_PANE }, ($, e, next) => (codePetOn ? codePet_hook_5($, e, next) : next(e)))
+  on('command.run', { command: 'narrate' }, ($, e, next) => (agentNarratorOn ? agentNarrator_hook_1($, e, next) : next(e)))
+  on('ui.render', { component: 'Pane', requestId: agentNarrator_PANE }, ($, e, next) => (agentNarratorOn ? agentNarrator_hook_5($, e, next) : next(e)))
+  on('command.run', { command: 'race' }, ($, e, next) => (agentRaceOn ? agentRace_hook_1($, e, next) : next(e)))
+  on('ui.render', { component: 'Pane', requestId: agentRace_PANE }, ($, e, next) => (agentRaceOn ? agentRace_hook_4($, e, next) : next(e)))
+  on('command.run', { command: 'monologue' }, ($, e, next) => (innerMonologueOn ? innerMonologue_hook_1($, e, next) : next(e)))
+  on('ui.render', { component: 'Pane', requestId: innerMonologue_PANE }, ($, e, next) => (innerMonologueOn ? innerMonologue_hook_4($, e, next) : next(e)))
+  on('command.run', { command: 'caster' }, ($, e, next) => (sportscasterOn ? sportscaster_hook_1($, e, next) : next(e)))
+  on('ui.render', { component: 'Pane', requestId: sportscaster_PANE }, ($, e, next) => (sportscasterOn ? sportscaster_hook_6($, e, next) : next(e)))
+  on('command.run', { command: 'alerts' }, ($, e, next) => (inboxAlertsOn ? inboxAlerts_hook_1($, e, next) : next(e)))
+  on('ui.render', { component: 'Pane', requestId: inboxAlerts_PANE }, ($, e, next) => (inboxAlertsOn ? inboxAlerts_hook_2($, e, next) : next(e)))
 }

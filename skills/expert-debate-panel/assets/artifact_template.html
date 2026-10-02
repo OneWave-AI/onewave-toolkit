@@ -1,0 +1,165 @@
+<!--
+  Expert Debate Panel - Artifact Template
+  Starting point for the debate's interactive HTML page. Self-contained: no external scripts or fonts.
+  Replace {{PLACEHOLDERS}} with debate content. Add/remove expert cards
+  and exchanges as needed. Keep background transparent.
+-->
+<style>
+  :root {
+    --bg: transparent;
+    --fg: #1a1a1a;
+    --muted: #6b6b6b;
+    --accent: #2563eb;
+    --tension: #dc2626;
+    --consensus: #b45309;
+    --card-bg: rgba(0,0,0,0.03);
+    --card-border: rgba(0,0,0,0.08);
+    --tab-active: #1a1a1a;
+    --tab-inactive: #9ca3af;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fg: #f3f4f6;
+      --muted: #9ca3af;
+      --card-bg: rgba(255,255,255,0.04);
+      --card-border: rgba(255,255,255,0.12);
+      --tab-active: #f3f4f6;
+      --tab-inactive: #6b7280;
+    }
+  }
+  .panel-root { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; color: var(--fg); max-width: 1100px; margin: 0 auto; }
+  .panel-header { margin-bottom: 1.5rem; }
+  .panel-topic { font-size: 1.75rem; font-weight: 700; margin: 0 0 0.25rem 0; }
+  .panel-tone { font-size: 0.875rem; color: var(--muted); }
+  .panel-layout { display: grid; grid-template-columns: 1fr 280px; gap: 1.5rem; }
+  @media (max-width: 768px) { .panel-layout { grid-template-columns: 1fr; } }
+
+  .expert-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
+  .expert-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 0.875rem; cursor: pointer; transition: transform 0.15s, border-color 0.15s; }
+  .expert-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .expert-role { font-weight: 600; margin: 0 0 0.25rem 0; }
+  .expert-bio { font-size: 0.85rem; color: var(--muted); margin: 0; line-height: 1.4; }
+  .expert-detail { display: none; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--card-border); font-size: 0.875rem; }
+  .expert-card.open .expert-detail { display: block; }
+
+  .tabs { display: flex; gap: 1.5rem; border-bottom: 1px solid var(--card-border); margin-bottom: 1.25rem; }
+  .tab { background: none; border: none; padding: 0.5rem 0; font-size: 1rem; font-weight: 600; color: var(--tab-inactive); cursor: pointer; border-bottom: 2px solid transparent; }
+  .tab.active { color: var(--tab-active); border-bottom-color: var(--accent); }
+
+  .act { display: none; }
+  .act.active { display: block; }
+  .opening { margin-bottom: 1rem; }
+  .opening-role { font-weight: 600; margin: 0 0 0.25rem 0; }
+  .opening-text { margin: 0; line-height: 1.6; }
+
+  .exchange { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 1rem; margin-bottom: 1rem; }
+  .exchange-summary { font-size: 0.85rem; color: var(--tension); font-weight: 600; margin: 0 0 0.5rem 0; text-transform: uppercase; letter-spacing: 0.04em; }
+  .speaker { margin: 0.75rem 0; }
+  .speaker-name { font-weight: 600; }
+
+  .synth-section { margin-bottom: 1.25rem; }
+  .synth-title { font-size: 1rem; font-weight: 700; margin: 0 0 0.5rem 0; }
+  .consensus-item { color: var(--consensus); }
+  .frame-box { background: var(--card-bg); border-left: 3px solid var(--accent); padding: 0.75rem 1rem; border-radius: 4px; line-height: 1.6; }
+
+  .sidebar { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 1rem; height: fit-content; position: sticky; top: 1rem; }
+  .sidebar-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tension); margin: 0 0 0.75rem 0; }
+  .tension { margin-bottom: 0.875rem; }
+  .tension-headline { font-weight: 600; font-size: 0.9rem; margin: 0 0 0.2rem 0; }
+  .tension-detail { font-size: 0.8rem; color: var(--muted); margin: 0; line-height: 1.4; }
+</style>
+
+<div class="panel-root">
+  <div class="panel-header">
+    <h1 class="panel-topic">{{TOPIC}}</h1>
+    <div class="panel-tone">Tone: {{TONE}} &middot; Moderator: The Moderator (neutral)</div>
+  </div>
+
+  <div class="panel-layout">
+    <div>
+      <div class="expert-cards" id="expert-cards">
+        <!-- Repeat this card for each expert -->
+        <div class="expert-card" onclick="this.classList.toggle('open')">
+          <p class="expert-role">{{ROLE_1}}</p>
+          <p class="expert-bio">{{2-sentence bio}}</p>
+          <div class="expert-detail">
+            <strong>Position:</strong> {{full opening position}}<br><br>
+            <strong>Key argument:</strong> {{their sharpest line from cross-examination}}
+          </div>
+        </div>
+        <!-- Add cards for ROLE_2, ROLE_3, ROLE_4, ROLE_5 -->
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" data-act="act1">Act 1: Opening</button>
+        <button class="tab" data-act="act2">Act 2: Cross-examination</button>
+        <button class="tab" data-act="act3">Act 3: Synthesis</button>
+      </div>
+
+      <div class="act active" id="act1">
+        <!-- Repeat for each expert -->
+        <div class="opening">
+          <p class="opening-role">{{ROLE_1}}</p>
+          <p class="opening-text">{{Opening statement, 3-5 sentences}}</p>
+        </div>
+      </div>
+
+      <div class="act" id="act2">
+        <!-- Repeat for each exchange -->
+        <div class="exchange">
+          <p class="exchange-summary">Exchange 1: {{tension headline}}</p>
+          <div class="speaker"><span class="speaker-name">The Moderator:</span> {{frames the disagreement}}</div>
+          <div class="speaker"><span class="speaker-name">{{ROLE_X}}:</span> {{steel-man + counter}}</div>
+          <div class="speaker"><span class="speaker-name">{{ROLE_Y}}:</span> {{defense + counter-attack or concession}}</div>
+        </div>
+      </div>
+
+      <div class="act" id="act3">
+        <div class="synth-section">
+          <h3 class="synth-title">Points of Consensus</h3>
+          <ul>
+            <li class="consensus-item">{{consensus point}}</li>
+          </ul>
+        </div>
+        <div class="synth-section">
+          <h3 class="synth-title">Unresolved Disagreement</h3>
+          <ul>
+            <li><strong>{{Tension}}:</strong> {{who disagrees and why}}</li>
+          </ul>
+        </div>
+        <div class="synth-section">
+          <h3 class="synth-title">Questions to Sit With</h3>
+          <ol>
+            <li>{{Question 1}}</li>
+            <li>{{Question 2}}</li>
+            <li>{{Question 3}}</li>
+          </ol>
+        </div>
+        <div class="synth-section">
+          <h3 class="synth-title">Recommended Decision Frame</h3>
+          <div class="frame-box">{{A way to think about the choice, not a recommendation}}</div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="sidebar">
+      <p class="sidebar-title">Key Tensions</p>
+      <!-- Repeat for each of the 2-3 sharpest tensions -->
+      <div class="tension">
+        <p class="tension-headline">{{Tension headline}}</p>
+        <p class="tension-detail">{{One-line summary of who disagrees and the crux}}</p>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.act').forEach(a => a.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.act).classList.add('active');
+    });
+  });
+</script>

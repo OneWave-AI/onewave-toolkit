@@ -47,6 +47,7 @@ This plugin ships twelve subagents. Prefer them when they fit, and name them exa
 
 Skills in this plugin:
 - Coding: `/agent-army`, `/code-review-pro`, `/test-coverage-improver`, `/plan-in-files`, `/session-handoff`, `/before-you-build`
+- Strategy: `/expert-debate-panel`
 - Marketing: `/landing-page-copywriter`, `/seo-optimizer`, `/content-repurposer`, `/linkedin-post-optimizer`
 - Sales: `/cold-email-sequence-generator`, `/prospect-research-compiler`, `/sales-call-prep-assistant`, `/objection-pattern-detector`
 

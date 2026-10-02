@@ -28,7 +28,7 @@ check 2 '{"tool_name":"Bash","tool_input":{"command":"printenv | sort"}}' "print
 check 2 "{\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"a.ts\",\"content\":\"const k = '$FAKE_ANTHROPIC'\"}}" "Anthropic key written to a file"
 check 2 "{\"tool_name\":\"Edit\",\"tool_input\":{\"new_string\":\"aws_key = $FAKE_AWS\"}}" "AWS key in an edit"
 check 2 "{\"tool_name\":\"Write\",\"tool_input\":{\"content\":\"$PEM\"}}" "private key block"
-check 2 "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"curl -H 'x-api-key: $FAKE_ANTHROPIC' https://api.example.com\"}}" "literal key in a command"
+check 2 "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"curl -H 'x-api-key: $FAKE_ANTHROPIC' localhost\"}}" "literal key in a command"
 
 # Allowed
 check 0 "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"echo ${D}DOCKER_TOKEN | docker login --password-stdin\"}}" "secret piped into a program"
