@@ -2,7 +2,7 @@
   "name": "onewave-toolkit",
   "displayName": "OneWave AI Toolkit",
   "version": "1.0.0",
-  "description": "A coding, marketing and sales team in one plugin: 12 specialist agents, 15 skills, 4 team commands and a secret guard hook that stops Claude from leaking API keys.",
+  "description": "A coding, marketing and sales team in one plugin: 12 specialist agents, 15 skills, 4 team commands, 10 Claude Code mods and a secret guard hook that stops Claude from leaking API keys.",
   "author": {
     "name": "OneWave AI",
     "url": "https://www.onewave-ai.com"
@@ -12,19 +12,95 @@
   "license": "MIT",
   "keywords": [
     "agents",
-    "coding",
-    "marketing",
-    "sales",
     "code-review",
-    "seo",
+    "coding",
     "copywriting",
+    "marketing",
+    "mods",
+    "productivity",
     "prospecting",
+    "sales",
     "secret-scanning",
-    "productivity"
+    "seo"
   ],
   "icon": "./.claude-plugin/icon.png",
   "documentationUrl": "https://github.com/OneWave-AI/onewave-toolkit/blob/main/README.md",
   "supportUrl": "https://www.onewave-ai.com/contact",
   "privacyPolicyUrl": "https://www.onewave-ai.com/privacy",
-  "termsOfServiceUrl": "https://www.onewave-ai.com/terms"
+  "termsOfServiceUrl": "https://www.onewave-ai.com/terms",
+  "userConfig": {
+    "burnMeter": {
+      "type": "boolean",
+      "title": "Burn Meter mod",
+      "description": "Live session cost above the prompt with plan limits and a /burn pane",
+      "default": true
+    },
+    "launchCodes": {
+      "type": "boolean",
+      "title": "Launch Codes mod",
+      "description": "Hold dangerous Bash commands (rm -rf, force push, DROP, prod deploys) until you type a one-time code",
+      "default": true
+    },
+    "sessionWrapped": {
+      "type": "boolean",
+      "title": "Session Wrapped mod",
+      "description": "/wrapped: an animated session recap and a shareable PNG card (needs python3)",
+      "default": true
+    },
+    "bossFight": {
+      "type": "boolean",
+      "title": "Boss Fight mod",
+      "description": "Failing tests spawn a pixel boss; fixing tests lands hits",
+      "default": true
+    },
+    "codePet": {
+      "type": "boolean",
+      "title": "Code Pet mod",
+      "description": "A pixel pet that reacts to what Claude does",
+      "default": true
+    },
+    "agentNarrator": {
+      "type": "boolean",
+      "title": "Agent Narrator mod",
+      "description": "/narrate: every agent step in plain English with a time-saved counter",
+      "default": true
+    },
+    "agentRace": {
+      "type": "boolean",
+      "title": "Agent Race mod",
+      "description": "/race: race several sessions on one task on a live scoreboard",
+      "default": true
+    },
+    "innerMonologue": {
+      "type": "boolean",
+      "title": "Inner Monologue mod",
+      "description": "A pane of Claude's dry inner thoughts. Calls a small model while the pane is open",
+      "default": false
+    },
+    "sportscaster": {
+      "type": "boolean",
+      "title": "Sportscaster mod",
+      "description": "Spoken play-by-play of the session with crowd sounds. Calls a small model and plays audio",
+      "default": false
+    },
+    "inboxAlerts": {
+      "type": "boolean",
+      "title": "Inbox Alerts mod",
+      "description": "Gmail, Slack and Calendar alerts through your claude.ai connectors. Reads your inbox",
+      "default": false
+    },
+    "email": {
+      "type": "string",
+      "title": "Your email (Inbox Alerts)",
+      "description": "Your Gmail address, so your own sent mail is not an alert",
+      "default": ""
+    },
+    "slackUserId": {
+      "type": "string",
+      "title": "Your Slack member ID (Inbox Alerts)",
+      "description": "Your Slack member ID (U...), used to find mentions and DMs",
+      "default": ""
+    }
+  },
+  "types": "./types/index.d.ts"
 }

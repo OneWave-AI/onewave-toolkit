@@ -1,6 +1,6 @@
 # OneWave AI Toolkit
 
-A coding, marketing and sales team in one Claude plugin: **12 specialist agents, 15 skills, 4 team commands and a secret guard** that stops Claude from leaking your API keys.
+A coding, marketing and sales team in one Claude plugin: **12 specialist agents, 15 skills, 4 team commands, 10 Claude Code mods and a secret guard** that stops Claude from leaking your API keys.
 
 Install it once and you can plan and review code, write and test it, build a launch kit, research a prospect and draft the outreach, all from the same session.
 
@@ -66,6 +66,41 @@ Agents that research use web search. Agents that work on code use your normal Cl
 | `/onewave-toolkit:launch <product>` | content-strategist, then copywriter, seo-specialist and social-media-manager in parallel, combined into one launch kit |
 | `/onewave-toolkit:prospect <company>` | prospect-researcher, then outreach-writer, then deal-coach: a cited brief, drafted emails and call prep |
 
+## 10 mods (Claude Code)
+
+Mods add live panes, a band above the prompt, status lines and guards to Claude Code itself. They run in the terminal and in the Desktop app's Code tab. Each one has an on/off switch in `/config` under this plugin. The three that read your inbox, call a model or play sound start off.
+
+| Mod | Command | What it does | Default |
+| --- | --- | --- | --- |
+| Burn Meter | `/burn` | Session cost as a growing fire bar above the prompt, plan limits with reset times, per-turn cost | On |
+| Launch Codes | `/launch-codes` | Holds `rm -rf`, force pushes, `DROP` through a SQL client, production deploys and piped install scripts until you type a one-time code | On |
+| Session Wrapped | `/wrapped` | An animated recap of the session and a shareable PNG card | On |
+| Boss Fight | `/boss` | Failing tests spawn a pixel boss; every run that fixes tests lands a hit | On |
+| Code Pet | `/pet` | A pixel pet that eats on tool calls, gets sick on failures and sleeps when you stop | On |
+| Agent Narrator | `/narrate` | Every agent step in plain English, with a time-saved counter | On |
+| Agent Race | `/race` | Race several sessions on the same task on a live scoreboard | On |
+| Inner Monologue | `/monologue` | A pane of Claude's dry inner thoughts about the session | Off |
+| Sportscaster | `/caster` | Spoken play-by-play of the session with crowd sounds | Off |
+| Inbox Alerts | `/alerts` | Gmail, Slack and Calendar alerts as toasts and a pane | Off |
+
+### What the mods reach
+
+| Mod | Network | Runs processes | Files | Calls a model |
+| --- | --- | --- | --- | --- |
+| Burn Meter, Boss Fight, Code Pet, Launch Codes | No | No | No | No |
+| Session Wrapped | No | `python3` to read your local Claude Code transcripts, `base64` to write the PNG | Writes one PNG to `~/Desktop` and a cache in `~/.cache/session-wrapped` | No |
+| Agent Race | No | No | Reads and writes `~/.claude/agent-race/<race>/` | No |
+| Agent Narrator | No | No | No | Only with `/narrate smart`: the tool name and short fields, never file contents |
+| Inner Monologue | No | No | No | Yes, a summary of recent tool calls and the first 120 characters of each prompt, while its pane is open |
+| Sportscaster | No | No | No | Yes, a summary of recent tool calls |
+| Inbox Alerts | Through your claude.ai Gmail, Slack and Calendar connectors | No | No | `/alerts triage` sends alert snippets to Claude |
+
+No mod makes its own network requests. Model calls go only to the Claude model your session already uses.
+
+- **Launch Codes is a speed bump, not a security boundary.** It checks Bash commands only. Keep your normal permissions and sandboxing on.
+- **Inbox Alerts handles text other people wrote.** `/alerts triage` wraps every email and Slack snippet in an untrusted block and tells Claude never to send, reply or delete anything. That lowers prompt-injection risk; it does not remove it. Set your email and Slack member ID in `/config` so your own messages do not alert you.
+- The mods are also published one by one, with source and tests, at [OneWave-AI/claude-code-mods](https://github.com/OneWave-AI/claude-code-mods).
+
 ## Secret guard (hook)
 
 The toolkit includes one hook that runs before Claude uses Bash, Write or Edit. It blocks three things:
@@ -79,18 +114,18 @@ When it blocks something, Claude sees the reason and takes a safer route. The ho
 ## Privacy and data
 
 - The skills, agents and commands are instructions only. They ship no code.
-- The only code is the secret guard hook described above. It never sends data anywhere.
+- The code is the secret guard hook and the mods, both described above. Neither makes its own network requests.
 - Research agents use web search through your Claude session. Nothing else leaves your machine except your conversation with Claude itself.
-- The toolkit stores no data and collects no analytics.
+- The toolkit collects no analytics. Mods keep small values (your burn total, your pet, boss kills) in Claude Code's own plugin storage on your machine.
 - Sales agents work from public sources and never send messages for you: every email and post is a draft you review.
 
 ## Where it works
 
-| Surface | Skills | Agents | Commands | Secret guard hook |
-| --- | --- | --- | --- | --- |
-| Claude Code (terminal, IDE and the Desktop app's Code tab) | Yes | Yes | Yes | Yes |
-| Cowork | Yes | Yes | Yes, as `/onewave-toolkit:<command>` | Yes |
-| Claude chat (web, desktop, mobile) | Yes | No | Claude applies them like skills | No |
+| Surface | Skills | Agents | Commands | Secret guard hook | Mods |
+| --- | --- | --- | --- | --- | --- |
+| Claude Code (terminal, IDE and the Desktop app's Code tab) | Yes | Yes | Yes | Yes | Yes. Panes and bands draw in the terminal and Desktop app |
+| Cowork | Yes | Yes | Yes, as `/onewave-toolkit:<command>` | Yes | No |
+| Claude chat (web, desktop, mobile) | Yes | No | Claude applies them like skills | No | No |
 
 ## Support
 
