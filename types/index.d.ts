@@ -183,17 +183,6 @@ export type AgentRaceRaceView = {
 
 export type InnerMonologueThought = { id: number; text: string; at: number }
 
-// ---- sportscaster ----
-
-export type SportscasterFx = 'cheer' | 'boo' | 'gasp' | null
-
-export type SportscasterTicker = { line: string; at: number; fx: SportscasterFx }
-
-/** The booth pane: who is talking, since when, and the frame of the mouth. */
-export type SportscasterMic = { isTalking: boolean; startedAt: number; frame: number }
-
-export type SportscasterScore = { plays: number; fouls: number; startedAt: number }
-
 // ---- inbox-alerts ----
 
 export type InboxAlertsAlertSource = 'gmail' | 'slack'
@@ -228,6 +217,6 @@ export type InboxAlertsPollStatus = { lastAt: string | null; error: string | nul
 
 declare module 'claude-code' {
   interface PluginState {
-    'onewave-toolkit': { burn_burn: BurnMeterBurn; burn_isHidden: boolean; burn_fired: number[]; burn_turns: number[]; burn_turnStart: number; burn_models: Record<string, BurnMeterModelTally>; launch_alert: LaunchCodesAlert | null; wrapped_stats: SessionWrappedStats; wrapped_reveal: SessionWrappedReveal; boss_fight: BossFightFight; boss_kills: number; pet_pet: CodePetPet | null; pet_mood: CodePetMood; pet_demo: CodePetDemoView | null; narrator_feed: AgentNarratorStep[]; narrator_run: AgentNarratorRun; narrator_isSmart: boolean; narrator_isDemo: boolean; race_view: AgentRaceRaceView; monologue_thoughts: InnerMonologueThought[]; monologue_isThinking: boolean; caster_ticker: SportscasterTicker | null; caster_isLive: boolean; caster_feed: SportscasterTicker[]; caster_mic: SportscasterMic; caster_score: SportscasterScore; inbox_alerts: InboxAlertsAlert[]; inbox_events: InboxAlertsCalEvent[]; inbox_poll: InboxAlertsPollStatus; inbox_tab: InboxAlertsTab }
+    'onewave-toolkit': { burn_burn: BurnMeterBurn; burn_isHidden: boolean; burn_fired: number[]; burn_turns: number[]; burn_turnStart: number; burn_models: Record<string, BurnMeterModelTally>; launch_alert: LaunchCodesAlert | null; wrapped_stats: SessionWrappedStats; wrapped_reveal: SessionWrappedReveal; boss_fight: BossFightFight; boss_kills: number; pet_pet: CodePetPet | null; pet_mood: CodePetMood; pet_demo: CodePetDemoView | null; narrator_feed: AgentNarratorStep[]; narrator_run: AgentNarratorRun; narrator_isSmart: boolean; narrator_isDemo: boolean; race_view: AgentRaceRaceView; monologue_thoughts: InnerMonologueThought[]; monologue_isThinking: boolean; inbox_alerts: InboxAlertsAlert[]; inbox_events: InboxAlertsCalEvent[]; inbox_poll: InboxAlertsPollStatus; inbox_tab: InboxAlertsTab }
   }
 }

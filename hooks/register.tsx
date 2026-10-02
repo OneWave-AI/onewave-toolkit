@@ -53,11 +53,6 @@ import {
 } from '../mods/agent-race/race'
 import type { Thought as innerMonologue_Thought } from '../mods/inner-monologue/types'
 import { DEMO as innerMonologue_DEMO, Inbox as innerMonologue_Inbox, THINKER as innerMonologue_THINKER, describeCall as innerMonologue_describeCall, isDue as innerMonologue_isDue, revealed as innerMonologue_revealed, thinkerPrompt as innerMonologue_thinkerPrompt, thoughtLine as innerMonologue_thoughtLine } from '../mods/inner-monologue/logic'
-import type { Fx as sportscaster_Fx, Mic as sportscaster_Mic, Score as sportscaster_Score, Ticker as sportscaster_Ticker } from '../mods/sportscaster/types'
-import { gameClock as sportscaster_gameClock, head as sportscaster_head, moodOf as sportscaster_moodOf, revealed as sportscaster_revealed, wrap as sportscaster_wrap } from '../mods/sportscaster/art'
-import { ANNOUNCER as sportscaster_ANNOUNCER, Booth as sportscaster_Booth, DEMO as sportscaster_DEMO, Slot as sportscaster_Slot, announcerPrompt as sportscaster_announcerPrompt, speakable as sportscaster_speakable, turnPlay as sportscaster_turnPlay } from '../mods/sportscaster/logic'
-import type { Play as sportscaster_Play } from '../mods/sportscaster/logic'
-import { fxClip as sportscaster_fxClip } from '../mods/sportscaster/wav'
 import type { Alert as inboxAlerts_Alert, CalEvent as inboxAlerts_CalEvent, PollStatus as inboxAlerts_PollStatus, Tab as inboxAlerts_Tab } from '../mods/inbox-alerts/types'
 import { age as inboxAlerts_age, mergeAlerts as inboxAlerts_mergeAlerts, parseCalendar as inboxAlerts_parseCalendar, parseGmail as inboxAlerts_parseGmail, parseSlack as inboxAlerts_parseSlack, until as inboxAlerts_until } from '../mods/inbox-alerts/parse'
 import { waveFrame as inboxAlerts_waveFrame } from '../mods/inbox-alerts/wave'
@@ -2005,287 +2000,6 @@ const innerMonologue_hook_4: Hook<'ui.render'> = async ($, e) => {
       </Box>
     )
   }
-// ===== sportscaster ====================================================================
-
-const sportscaster_VOICE = 'Daniel'
-const sportscaster_GOLD = '#c2a87e'
-const sportscaster_INK = '#0B1121'
-const sportscaster_PAPER = '#E8E2D6'
-const sportscaster_RED = '#e5484d'
-const sportscaster_PANE = 'sportscaster'
-const sportscaster_FEED_KEEP = 40
-const sportscaster_MOUTH_MS = 110
-
-const sportscaster_ticker = atom({ plugin: 'onewave-toolkit', key: 'caster_ticker' } as const, null as sportscaster_Ticker | null)
-const sportscaster_isLive = atom({ plugin: 'onewave-toolkit', key: 'caster_isLive' } as const, false)
-const sportscaster_feed = atom({ plugin: 'onewave-toolkit', key: 'caster_feed' } as const, [] as sportscaster_Ticker[])
-const sportscaster_mic = atom({ plugin: 'onewave-toolkit', key: 'caster_mic' } as const, { isTalking: false, startedAt: 0, frame: -1 } as sportscaster_Mic)
-const sportscaster_score = atom({ plugin: 'onewave-toolkit', key: 'caster_score' } as const, { plays: 0, fouls: 0, startedAt: 0 } as sportscaster_Score)
-
-let sportscaster_mouth: { cancel: () => void } | null = null
-
-const sportscaster_openBooth = ($: EngineInterface) => $.ui.open({ id: sportscaster_PANE, title: 'The Booth' })
-
-/** Puts a call on the air: the ticker, the top of the play-by-play, and the scoreboard. */
-const sportscaster_post = async ($: EngineInterface, line: string, at: number, fx: sportscaster_Fx) => {
-  const now = await $.clock.now()
-  await update($, sportscaster_score, s => ({ plays: s.plays + 1, fouls: s.fouls + (fx === 'boo' ? 1 : 0), startedAt: s.startedAt || now }))
-  const s = await read($, sportscaster_score)
-  const entry: sportscaster_Ticker = { line, at: now - s.startedAt, fx }
-  await update($, sportscaster_ticker, () => ({ line, at, fx }))
-  await update($, sportscaster_feed, list => [entry, ...list].slice(0, sportscaster_FEED_KEEP))
-}
-
-const sportscaster_resetGame = async ($: EngineInterface) => {
-  await update($, sportscaster_feed, () => [])
-  await update($, sportscaster_score, () => ({ plays: 0, fouls: 0, startedAt: 0 }))
-}
-
-const sportscaster_booth = new sportscaster_Booth()
-const sportscaster_slot = new sportscaster_Slot()
-const sportscaster_recent: string[] = []
-let sportscaster_isOnAir = false
-let sportscaster_isDemo = false
-let sportscaster_voice: string | undefined = sportscaster_VOICE
-
-const sportscaster_fieldsOf = (e: unknown) => e as Record<string, unknown>
-
-const sportscaster_say = async ($: EngineInterface, line: string) => {
-  // The mouth flaps for as long as the voice is reading the line.
-  sportscaster_mouth?.cancel()
-  await update($, sportscaster_mic, () => ({ isTalking: true, startedAt: 0, frame: 0 }))
-  const startedAt = await $.clock.now()
-  await update($, sportscaster_mic, m => ({ ...m, startedAt }))
-  const timer = $.clock.every(sportscaster_MOUTH_MS, () => void update($, sportscaster_mic, m => ({ ...m, frame: m.frame + 1 })).catch(() => undefined))
-  sportscaster_mouth = timer
-  try {
-    await sportscaster_speak($, line)
-  } finally {
-    timer.cancel()
-    if (sportscaster_mouth === timer) {
-      sportscaster_mouth = null
-      await update($, sportscaster_mic, m => ({ ...m, isTalking: false, frame: -1 }))
-    }
-  }
-}
-
-const sportscaster_speak = async ($: EngineInterface, line: string) => {
-  try {
-    await $.audio.speak(line, sportscaster_voice ? { voice: sportscaster_voice } : undefined)
-  } catch {
-    // The voice is not installed here: fall back to the system default once.
-    if (!sportscaster_voice) return
-    sportscaster_voice = undefined
-    try {
-      await $.audio.speak(line)
-    } catch {
-      // no voice at all: stay silent
-    }
-  }
-}
-
-const sportscaster_crowd = async ($: EngineInterface, fx: sportscaster_Fx) => {
-  if (!fx) return
-  try {
-    await $.audio.play({ base64: sportscaster_fxClip(fx), mime: 'audio/wav' }, { gain: fx === 'cheer' ? 0.7 : 0.6 })
-  } catch {
-    // no audio device: the play-by-play still shows
-  }
-}
-
-const sportscaster_call = async ($: EngineInterface, play: sportscaster_Play) => {
-  let line = ''
-  try {
-    const reply = await $.model.complete({
-      model: 'haiku',
-      system: sportscaster_ANNOUNCER,
-      prompt: sportscaster_announcerPrompt(play, sportscaster_recent.slice(-4)),
-      maxTokens: 60,
-      effort: 'low',
-    })
-    if (reply.isAnswered) line = sportscaster_speakable(reply.text)
-  } catch {
-    // the model is unavailable: fall back to the scripted line
-  }
-  return line || play.fallback
-}
-
-/** One utterance at a time; the slot holds at most one play behind it. */
-const sportscaster_onAir = async ($: EngineInterface) => {
-  if (sportscaster_isOnAir || sportscaster_isDemo || sportscaster_slot.isEmpty) return
-  sportscaster_isOnAir = true
-  try {
-    const play = sportscaster_slot.take(await $.clock.now())
-    if (!play) return
-    const line = await sportscaster_call($, play)
-    sportscaster_recent.push(line)
-    if (sportscaster_recent.length > 8) sportscaster_recent.shift()
-    await sportscaster_post($, line, play.at, play.fx)
-    void sportscaster_crowd($, play.fx)
-    await sportscaster_say($, line)
-  } finally {
-    sportscaster_isOnAir = false
-  }
-}
-
-const sportscaster_runDemo = async ($: EngineInterface) => {
-  sportscaster_isDemo = true
-  await sportscaster_resetGame($)
-  let wait = 0
-  sportscaster_DEMO.forEach(([delay, line, fx], i) => {
-    wait += delay
-    $.clock.after(wait, () => {
-      void (async () => {
-        await sportscaster_post($, line, wait, fx)
-        void sportscaster_crowd($, fx)
-        await sportscaster_say($, line)
-        if (i === sportscaster_DEMO.length - 1) sportscaster_isDemo = false
-      })()
-    })
-  })
-}
-
-const sportscaster_hook_0: Hook<'session.start'> = async ($, e, next) => {
-    await $.command.register({
-      name: 'caster',
-      description: 'Live sportscaster commentary: /caster on | off | demo | booth',
-    })
-    const wasLive = (await $.store.get('caster:' + 'isLive')) === true
-    await update($, sportscaster_isLive, () => wasLive)
-    $.clock.every(350, () => void sportscaster_onAir($).catch(() => undefined))
-
-    return next(e)
-  }
-
-const sportscaster_hook_1: Hook<'command.run'> = async ($, e) => {
-    const arg = e.args.trim().toLowerCase()
-    if (arg === 'booth' || arg === 'pane') {
-      await sportscaster_openBooth($)
-      return { text: 'Sportscaster: the booth is open.' }
-    }
-    if (arg === 'demo') {
-      void sportscaster_openBooth($)
-      await sportscaster_runDemo($)
-      return { text: 'Sportscaster: demo broadcast starting. Sound on.' }
-    }
-    const turnOn = arg === 'on' || (arg === '' && !(await read($, sportscaster_isLive)))
-    await $.store.set('caster:' + 'isLive', turnOn)
-    await update($, sportscaster_isLive, () => turnOn)
-    if (!turnOn) {
-      await update($, sportscaster_ticker, () => null)
-      return { text: 'Sportscaster off the air.' }
-    }
-    await sportscaster_resetGame($)
-    void sportscaster_openBooth($)
-    sportscaster_slot.offer({ text: 'The broadcast begins, Claude takes the field', weight: 3, fx: 'cheer', fallback: 'Welcome to the terminal! Claude takes the field!', at: await $.clock.now() })
-    return { text: 'Sportscaster on the air. /caster off to stop.' }
-  }
-
-const sportscaster_hook_2: Hook<'prompt.submit'> = async ($, e, next) => {
-    if (await read($, sportscaster_isLive)) {
-      sportscaster_booth.scoutStreak = 0
-      sportscaster_slot.offer({ text: 'A new play is called in from the sideline', weight: 1, fx: null, fallback: 'New play from the sideline. Here we go.', at: await $.clock.now() })
-    }
-    return next(e)
-  }
-
-const sportscaster_hook_3: Hook<'tool.call'> = async ($, e, next) => {
-    // A subagent's own calls are its game, not this one.
-    if (e.agentId || !(await read($, sportscaster_isLive))) return next(e)
-    const info = { tool: String(e.tool), input: sportscaster_fieldsOf(e) }
-    sportscaster_slot.offer(sportscaster_booth.before(info, await $.clock.now()))
-    const ran = await next(e)
-    if (ran.deny === undefined) {
-      sportscaster_slot.offer(sportscaster_booth.after(info, { isError: ran.isError === true, text: ran.text ?? '' }, await $.clock.now()))
-    }
-    return ran
-  }
-
-const sportscaster_hook_4: Hook<'turn.complete'> = async ($, e, next) => {
-    if (!e.agentId && (await read($, sportscaster_isLive))) sportscaster_slot.offer(sportscaster_turnPlay(e.durationMs, e.isAborted, await $.clock.now()))
-    return next(e)
-  }
-
-const sportscaster_hook_5: Hook<'ui.render'> = async ($, e, next) => {
-    const now = await read($, sportscaster_ticker)
-    if (e.props.hasSurvey || !now || (!(await read($, sportscaster_isLive)) && !sportscaster_isDemo)) return next(e)
-    const { Box, Text } = $.ui.resolve(e)
-    const width = Math.max(20, (e.props.bodyColumns || e.viewport?.columns || 80) - 12)
-    const line = now.line.length > width ? `${now.line.slice(0, width - 3)}...` : now.line
-
-    return (
-      <Box gap={1}>
-        <Text backgroundColor={sportscaster_GOLD} color={sportscaster_INK} bold> LIVE </Text>
-        <Text color={now.fx === 'cheer' ? sportscaster_GOLD : sportscaster_PAPER} bold={now.fx === 'cheer'}>{line}</Text>
-      </Box>
-    )
-  }
-
-const sportscaster_hook_6: Hook<'ui.render'> = async ($, e) => {
-    const { Box, Text } = $.ui.resolve(e)
-    const [now, list, m, sc, live] = await Promise.all([read($, sportscaster_ticker), read($, sportscaster_feed), read($, sportscaster_mic), read($, sportscaster_score), read($, sportscaster_isLive)])
-    const clockNow = await $.clock.now()
-    const width = Math.max(24, (e.props.bodyColumns || e.viewport?.columns || 40) - 2)
-    const rows = e.viewport?.rows ?? 30
-    const mood = sportscaster_moodOf(now?.fx ?? null)
-    const isOn = live || sportscaster_isDemo
-    const current = now ? sportscaster_revealed(now.line, clockNow - m.startedAt, m.isTalking) : 'Waiting for kickoff. /caster on to go live.'
-    const caption = sportscaster_wrap(current, width - 2)
-    const captionBg = now?.fx === 'boo' ? sportscaster_RED : sportscaster_GOLD
-    const clockLine = sc.startedAt ? sportscaster_gameClock(clockNow - sc.startedAt) : '00:00'
-    // Head (6) + header + score + caption + gaps take about 14 rows; each call gets up to 3.
-    const room = Math.max(1, Math.floor((rows - 14 - caption.length) / 3))
-
-    return (
-      <Box flexDirection="column" gap={1}>
-        <Box justifyContent="space-between">
-          <Text color={isOn ? sportscaster_RED : sportscaster_PAPER} bold>{isOn ? '● ON AIR' : '○ OFF AIR'}</Text>
-          <Text dimColor>{clockLine}</Text>
-        </Box>
-        <Box gap={2} alignItems="center">
-          <Box flexDirection="column">
-            {sportscaster_head(m.isTalking ? m.frame : -1, mood).map(([l, face, r]) => (
-              <Text>
-                <Text color={sportscaster_GOLD}>{l}</Text>
-                <Text color={sportscaster_PAPER}>{face}</Text>
-                <Text color={sportscaster_GOLD}>{r}</Text>
-              </Text>
-            ))}
-          </Box>
-          <Box flexDirection="column">
-            <Text color={sportscaster_PAPER} bold>THE BOOTH</Text>
-            <Text dimColor>{m.isTalking ? 'on the mic' : 'listening'}</Text>
-            <Text>
-              <Text dimColor>plays </Text>
-              <Text color={sportscaster_PAPER} bold>{String(sc.plays)}</Text>
-              <Text dimColor>  fouls </Text>
-              <Text color={sc.fouls ? sportscaster_RED : sportscaster_PAPER} bold>{String(sc.fouls)}</Text>
-            </Text>
-          </Box>
-        </Box>
-        <Box flexDirection="column" backgroundColor={captionBg} paddingX={1}>
-          {caption.map(row => (
-            <Text color={sportscaster_INK} bold>{row}</Text>
-          ))}
-        </Box>
-        <Box flexDirection="column">
-          <Text dimColor bold>PLAY-BY-PLAY</Text>
-          {list.length === 0 && <Text dimColor>No plays yet.</Text>}
-          {list.slice(0, room).map(item => (
-            <Box gap={1}>
-              <Text dimColor>{sportscaster_gameClock(item.at)}</Text>
-              <Box flexDirection="column" flexShrink={1}>
-                <Text color={item.fx === 'cheer' ? sportscaster_GOLD : item.fx === 'boo' ? sportscaster_RED : sportscaster_PAPER} bold={item.fx === 'cheer'} wrap="wrap">
-                  {item.line}
-                </Text>
-                {item.fx && item.fx !== 'gasp' && <Text dimColor>{item.fx === 'cheer' ? 'crowd: cheering' : 'crowd: booing'}</Text>}
-              </Box>
-            </Box>
-          ))}
-        </Box>
-      </Box>
-    )
-  }
 // ===== inbox-alerts ====================================================================
 
 const inboxAlerts_PANE = 'inbox-alerts'
@@ -2755,14 +2469,12 @@ export const register: Register = (on, options) => {
   const agentNarratorOn = isOn('agentNarrator', true)
   const agentRaceOn = isOn('agentRace', true)
   const innerMonologueOn = isOn('innerMonologue', false)
-  const sportscasterOn = isOn('sportscaster', false)
   const inboxAlertsOn = isOn('inboxAlerts', false)
   if (inboxAlertsOn) inboxAlerts_setup(options as Options)
 
   on('session.start', async ($, e, next) => {
-    const s10 = (x: unknown) => next(x as never)
-    const s9 = (x: unknown): unknown => (inboxAlertsOn ? inboxAlerts_hook_0($, x as never, ((y?: unknown) => s10(y ?? x)) as never) : s10(x))
-    const s8 = (x: unknown): unknown => (sportscasterOn ? sportscaster_hook_0($, x as never, ((y?: unknown) => s9(y ?? x)) as never) : s9(x))
+    const s9 = (x: unknown) => next(x as never)
+    const s8 = (x: unknown): unknown => (inboxAlertsOn ? inboxAlerts_hook_0($, x as never, ((y?: unknown) => s9(y ?? x)) as never) : s9(x))
     const s7 = (x: unknown): unknown => (innerMonologueOn ? innerMonologue_hook_0($, x as never, ((y?: unknown) => s8(y ?? x)) as never) : s8(x))
     const s6 = (x: unknown): unknown => (agentRaceOn ? agentRace_hook_0($, x as never, ((y?: unknown) => s7(y ?? x)) as never) : s7(x))
     const s5 = (x: unknown): unknown => (agentNarratorOn ? agentNarrator_hook_0($, x as never, ((y?: unknown) => s6(y ?? x)) as never) : s6(x))
@@ -2774,8 +2486,7 @@ export const register: Register = (on, options) => {
     return s0(e) as never
   })
   on('prompt.submit', async ($, e, next) => {
-    const s6 = (x: unknown) => next(x as never)
-    const s5 = (x: unknown): unknown => (sportscasterOn ? sportscaster_hook_2($, x as never, ((y?: unknown) => s6(y ?? x)) as never) : s6(x))
+    const s5 = (x: unknown) => next(x as never)
     const s4 = (x: unknown): unknown => (innerMonologueOn ? innerMonologue_hook_2($, x as never, ((y?: unknown) => s5(y ?? x)) as never) : s5(x))
     const s3 = (x: unknown): unknown => (agentNarratorOn ? agentNarrator_hook_2($, x as never, ((y?: unknown) => s4(y ?? x)) as never) : s4(x))
     const s2 = (x: unknown): unknown => (codePetOn ? codePet_hook_2($, x as never, ((y?: unknown) => s3(y ?? x)) as never) : s3(x))
@@ -2784,8 +2495,7 @@ export const register: Register = (on, options) => {
     return s0(e) as never
   })
   on('turn.complete', async ($, e, next) => {
-    const s6 = (x: unknown) => next(x as never)
-    const s5 = (x: unknown): unknown => (sportscasterOn ? sportscaster_hook_4($, x as never, ((y?: unknown) => s6(y ?? x)) as never) : s6(x))
+    const s5 = (x: unknown) => next(x as never)
     const s4 = (x: unknown): unknown => (agentRaceOn ? agentRace_hook_3($, x as never, ((y?: unknown) => s5(y ?? x)) as never) : s5(x))
     const s3 = (x: unknown): unknown => (agentNarratorOn ? agentNarrator_hook_4($, x as never, ((y?: unknown) => s4(y ?? x)) as never) : s4(x))
     const s2 = (x: unknown): unknown => (codePetOn ? codePet_hook_4($, x as never, ((y?: unknown) => s3(y ?? x)) as never) : s3(x))
@@ -2794,12 +2504,7 @@ export const register: Register = (on, options) => {
     return s0(e) as never
   })
   on('command.run', { command: 'burn' }, ($, e, next) => (burnMeterOn ? burnMeter_hook_3($, e, next) : next(e)))
-  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    const s2 = (x: unknown) => next(x as never)
-    const s1 = (x: unknown): unknown => (sportscasterOn ? sportscaster_hook_5($, x as never, ((y?: unknown) => s2(y ?? x)) as never) : s2(x))
-    const s0 = (x: unknown): unknown => (burnMeterOn ? burnMeter_hook_4($, x as never, ((y?: unknown) => s1(y ?? x)) as never) : s1(x))
-    return s0(e) as never
-  })
+  on('ui.render', { component: 'AbovePrompt' }, ($, e, next) => (burnMeterOn ? burnMeter_hook_4($, e, next) : next(e)))
   on('ui.render', { component: 'Pane', requestId: burnMeter_PANE }, ($, e, next) => (burnMeterOn ? burnMeter_hook_5($, e, next) : next(e)))
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     const s2 = (x: unknown) => next(x as never)
@@ -2810,8 +2515,7 @@ export const register: Register = (on, options) => {
   on('command.run', { command: 'launch-codes' }, ($, e, next) => (launchCodesOn ? launchCodes_hook_2($, e, next) : next(e)))
   on('ui.render', { component: 'Pane', requestId: launchCodes_PANE }, ($, e, next) => (launchCodesOn ? launchCodes_hook_3($, e, next) : next(e)))
   on('tool.call', async ($, e, next) => {
-    const s6 = (x: unknown) => next(x as never)
-    const s5 = (x: unknown): unknown => (sportscasterOn ? sportscaster_hook_3($, x as never, ((y?: unknown) => s6(y ?? x)) as never) : s6(x))
+    const s5 = (x: unknown) => next(x as never)
     const s4 = (x: unknown): unknown => (innerMonologueOn ? innerMonologue_hook_3($, x as never, ((y?: unknown) => s5(y ?? x)) as never) : s5(x))
     const s3 = (x: unknown): unknown => (agentRaceOn ? agentRace_hook_2($, x as never, ((y?: unknown) => s4(y ?? x)) as never) : s4(x))
     const s2 = (x: unknown): unknown => (agentNarratorOn ? agentNarrator_hook_3($, x as never, ((y?: unknown) => s3(y ?? x)) as never) : s3(x))
@@ -2832,8 +2536,6 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'Pane', requestId: agentRace_PANE }, ($, e, next) => (agentRaceOn ? agentRace_hook_4($, e, next) : next(e)))
   on('command.run', { command: 'monologue' }, ($, e, next) => (innerMonologueOn ? innerMonologue_hook_1($, e, next) : next(e)))
   on('ui.render', { component: 'Pane', requestId: innerMonologue_PANE }, ($, e, next) => (innerMonologueOn ? innerMonologue_hook_4($, e, next) : next(e)))
-  on('command.run', { command: 'caster' }, ($, e, next) => (sportscasterOn ? sportscaster_hook_1($, e, next) : next(e)))
-  on('ui.render', { component: 'Pane', requestId: sportscaster_PANE }, ($, e, next) => (sportscasterOn ? sportscaster_hook_6($, e, next) : next(e)))
   on('command.run', { command: 'alerts' }, ($, e, next) => (inboxAlertsOn ? inboxAlerts_hook_1($, e, next) : next(e)))
   on('ui.render', { component: 'Pane', requestId: inboxAlerts_PANE }, ($, e, next) => (inboxAlertsOn ? inboxAlerts_hook_2($, e, next) : next(e)))
 }

@@ -1,6 +1,6 @@
 # OneWave AI Toolkit
 
-A coding, marketing and sales team in one Claude plugin: **12 specialist agents, 16 skills, 4 team commands, 10 Claude Code mods and a secret guard** that stops Claude from leaking your API keys.
+A coding, marketing and sales team in one Claude plugin: **12 specialist agents, 16 skills, 4 team commands, 9 Claude Code mods and a secret guard** that stops Claude from leaking your API keys.
 
 Install it once and you can plan and review code, write and test it, build a launch kit, research a prospect and draft the outreach, all from the same session.
 
@@ -69,9 +69,9 @@ Agents that research use web search. Agents that work on code use your normal Cl
 | `/onewave-toolkit:launch <product>` | content-strategist, then copywriter, seo-specialist and social-media-manager in parallel, combined into one launch kit |
 | `/onewave-toolkit:prospect <company>` | prospect-researcher, then outreach-writer, then deal-coach: a cited brief, drafted emails and call prep |
 
-## 10 mods (Claude Code)
+## 9 mods (Claude Code)
 
-Mods add live panes, a band above the prompt, status lines and guards to Claude Code itself. They run in the terminal and in the Desktop app's Code tab. Each one has an on/off switch in `/config` under this plugin. The three that read your inbox, call a model or play sound start off.
+Mods add live panes, a band above the prompt, status lines and guards to Claude Code itself. They run in the terminal and in the Desktop app's Code tab. Each one has an on/off switch in `/config` under this plugin. The two that read your inbox or call a model start off.
 
 | Mod | Command | What it does | Default |
 | --- | --- | --- | --- |
@@ -83,7 +83,6 @@ Mods add live panes, a band above the prompt, status lines and guards to Claude 
 | Agent Narrator | `/narrate` | Every agent step in plain English, with a time-saved counter | On |
 | Agent Race | `/race` | Race several sessions on the same task on a live scoreboard | On |
 | Inner Monologue | `/monologue` | A pane of Claude's dry inner thoughts about the session | Off |
-| Sportscaster | `/caster` | Spoken play-by-play of the session with crowd sounds | Off |
 | Inbox Alerts | `/alerts` | Gmail, Slack and Calendar alerts as toasts and a pane | Off |
 
 ### What the mods reach
@@ -95,7 +94,6 @@ Mods add live panes, a band above the prompt, status lines and guards to Claude 
 | Agent Race | No | No | Reads and writes `~/.claude/agent-race/<race>/` | No |
 | Agent Narrator | No | No | No | Only with `/narrate smart`: the tool name and short fields, never file contents |
 | Inner Monologue | No | No | No | Yes, a summary of recent tool calls and the first 120 characters of each prompt, while its pane is open |
-| Sportscaster | No | No | No | Yes, a summary of recent tool calls |
 | Inbox Alerts | Through your claude.ai Gmail, Slack and Calendar connectors | No | No | `/alerts triage` sends alert snippets to Claude |
 
 No mod makes its own network requests. Model calls go only to the Claude model your session already uses.
@@ -108,14 +106,14 @@ Everything below is also visible in the source under `mods/` and `hooks/register
 - **Files they write.** Session Wrapped writes `~/Desktop/claude-wrapped-<time>.png` and a cache at `~/.cache/session-wrapped/`. Agent Race writes one small JSON file per session under `~/.claude/agent-race/<race>/`. No mod writes build, settings or instruction files.
 - **Tools they call.** Only Inbox Alerts calls tools itself, and only while its switch is on: the read-only claude.ai connector tools Gmail `search_threads`, Slack `slack_search_public_and_private` and Google Calendar `list_events`, every two minutes. What they return is shown in its pane and toasts and is not sent anywhere.
 - **Prompts they submit.** Only `/alerts triage` submits a prompt: your unread alert snippets and upcoming meeting titles, fenced as untrusted text, asking Claude to rank them and draft replies without sending anything.
-- **Prompts they read.** Burn Meter, Code Pet, Agent Narrator, Inner Monologue, Sportscaster and Session Wrapped hook `prompt.submit` to note that a turn started (Burn Meter records the cost so far; the others count turns or note the request). None of them changes your prompt, and only Inner Monologue sends any of it to the model, as described above.
+- **Prompts they read.** Burn Meter, Code Pet, Agent Narrator, Inner Monologue and Session Wrapped hook `prompt.submit` to note that a turn started (Burn Meter records the cost so far; the others count turns or note the request). None of them changes your prompt, and only Inner Monologue sends any of it to the model, as described above.
 - **Tool calls they watch.** Several mods watch tool calls to react to them (the pet eats, the boss takes damage, the narrator explains the step). No mod changes a tool's input. Launch Codes can stop a Bash command until you confirm it, and if its own check ever fails it blocks the command rather than letting it through.
 - **Download-and-run patterns.** Launch Codes and Agent Narrator contain the text of commands like `curl … | sh` so they can recognize and describe them. They never run them.
 
 
 - **Launch Codes is a speed bump, not a security boundary.** It checks Bash commands only. Keep your normal permissions and sandboxing on.
 - **Inbox Alerts handles text other people wrote.** `/alerts triage` wraps every email and Slack snippet in an untrusted block and tells Claude never to send, reply or delete anything. That lowers prompt-injection risk; it does not remove it. Set your email and Slack member ID in `/config` so your own messages do not alert you.
-- The mods are also published one by one, with source and tests, at [OneWave-AI/claude-code-mods](https://github.com/OneWave-AI/claude-code-mods).
+- The mods are also published one by one, with source and tests, at [OneWave-AI/claude-code-mods](https://github.com/OneWave-AI/claude-code-mods). That repository also has **Sportscaster**, spoken play-by-play of your session, which is not bundled here.
 
 ## Secret guard (hook)
 

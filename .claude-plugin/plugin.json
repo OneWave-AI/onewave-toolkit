@@ -2,7 +2,7 @@
   "name": "onewave-toolkit",
   "displayName": "OneWave AI Toolkit",
   "version": "1.0.0",
-  "description": "A coding, marketing and sales team in one plugin: 12 specialist agents, 16 skills, 4 team commands, 10 Claude Code mods and a secret guard hook that stops Claude from leaking API keys.",
+  "description": "A coding, marketing and sales team in one plugin: 12 specialist agents, 16 skills, 4 team commands, 9 Claude Code mods and a secret guard hook that stops Claude from leaking API keys.",
   "author": {
     "name": "OneWave AI",
     "url": "https://www.onewave-ai.com"
@@ -75,12 +75,6 @@
       "type": "boolean",
       "title": "Inner Monologue mod",
       "description": "A pane of Claude's dry inner thoughts. Calls a small model while the pane is open",
-      "default": false
-    },
-    "sportscaster": {
-      "type": "boolean",
-      "title": "Sportscaster mod",
-      "description": "Spoken play-by-play of the session with crowd sounds. Calls a small model and plays audio",
       "default": false
     },
     "inboxAlerts": {

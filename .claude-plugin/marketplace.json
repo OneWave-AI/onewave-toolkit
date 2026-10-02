@@ -9,7 +9,7 @@
     {
       "name": "onewave-toolkit",
       "source": "./",
-      "description": "A coding, marketing and sales team in one plugin: 12 specialist agents, 16 skills, 4 team commands, 10 Claude Code mods and a secret guard hook that stops Claude from leaking API keys."
+      "description": "A coding, marketing and sales team in one plugin: 12 specialist agents, 16 skills, 4 team commands, 9 Claude Code mods and a secret guard hook that stops Claude from leaking API keys."
     }
   ]
 }
